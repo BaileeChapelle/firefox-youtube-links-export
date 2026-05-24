@@ -12,12 +12,31 @@
 				button.addEventListener('click', e => {
 					e.preventDefault()
 					e.stopPropagation()
-					const links = [...new Set([...document.querySelectorAll('#playlist a.ytd-playlist-panel-video-renderer')].map(a => a.href.replace(/^.*v=([^&]*).*$/, '$1')))].map(str => `https://www.youtube.com/watch?v=${str}`)
-					navigator.clipboard.writeText(links.join('\r\n')).then(function () {
-						alert(`Copied ${links.length} links to clipboard`)
+					const videoElements = [...document.querySelectorAll('#playlist a.ytd-playlist-panel-video-renderer')];
+					const videoData = [];
+					const seen = new Set();
+					
+					videoElements.forEach(a => {
+						const vMatch = a.href.match(/v=([^&]+)/);
+						if (!vMatch) return;
+						const id = vMatch[1];
+						
+						if (!seen.has(id)) {
+							seen.add(id);
+							const container = a.closest('ytd-playlist-panel-video-renderer');
+							const titleEl = container ? container.querySelector('#video-title') : null;
+							let title = titleEl ? (titleEl.getAttribute('title') || titleEl.textContent).trim() : '';
+							if (!title) title = a.title || 'Unknown Title';
+							
+							videoData.push(`${videoData.length + 1}. ${title} - https://youtu.be/${id}`);
+						}
+					});
+
+					navigator.clipboard.writeText(videoData.join('\n')).then(function () {
+						alert(`Copied ${videoData.length} links to clipboard`)
 					}, function (err) {
 						alert(`Error copying to clipboard`)
-						console.error('[youtube-links-export] Error copying to clipboard', { links, err })
+						console.error('[youtube-links-export] Error copying to clipboard', { links: videoData, err })
 					})
 				})
 			}
